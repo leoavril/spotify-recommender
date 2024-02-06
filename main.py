@@ -146,6 +146,10 @@ class SpotifyExplorer:
     def PredictPlaylist(self, playlist):
         print(f"Generating prediction for given playlist")
         prediction = self.displayPrediction(playlist)
+
+        embed_link = prediction['embed']
+        prediction.pop('embed', None)
+
         df = pd.DataFrame([prediction])
         
         # Check if the file exists
@@ -155,8 +159,8 @@ class SpotifyExplorer:
             df.to_csv("predictionData.csv", index=True)
         
         # Return the prediction dictionary
-        return prediction['embed']
-
+        return embed_link
+    
 if __name__ == "__main__":
     # Parse command line arguments
     parser = argparse.ArgumentParser()
