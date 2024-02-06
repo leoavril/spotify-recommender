@@ -8,7 +8,7 @@ def playlistToSparseMatrixEntry(playlist, songs):
     """
     # print(songs.iloc[1:5])
     playlistMtrx = dok_matrix((1, len(songs)))
-    tracks = [songs.loc[str(x)]["sparse_id"] for x in list(playlist["tracks"])]
+    tracks = [songs.loc[str(x)]["sparse_id"] for x in list(playlist["tracks"]) if str(x) in songs.index]
     playlistMtrx[0, tracks] = 1
     return playlistMtrx.tocsr()
 
