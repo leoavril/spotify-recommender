@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<title>Test App</title>
+		<link
+			rel="stylesheet"
+			href="{{ url_for('static', filename='style.css') }}"
+		/>
+	</head>
+	<body>
+		<div class="container">
+			<h2>Spotify Playlist Recommender</h2>
+			<div class="wrapper">
+				<form class="wrapper" method="POST" action="/predict">
+					<input type="text" name="playlist" placeholder="Enter Spotify playlist link to enrich" />
+					<button type="submit"><span>Predict</span></button>
+				</form>
+
+			</div>
+			<ul>
+				{% for track in tracks %}
+				<li>
+					<iframe style="border-radius:12px" 
+					src="https://open.spotify.com/embed/track/{{ track }}"
+					width="60%" height="200"
+					frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+				</li>
+				{% endfor %}
+			</ul>
+		</div>
+	</body>
+</html>

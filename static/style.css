@@ -1,0 +1,103 @@
+@font-face {
+	font-family: "Spotify";
+	src: url('./fonts/Gotham-Bold.otf');
+}
+
+
+body {
+	font-family: Arial, sans-serif;
+	margin: 0;
+	padding: 0;
+	background-color: #191414;
+	color: #333;
+}
+
+h2 {
+	background-color: #2b2928;
+	color: #1DB954;
+	padding: 10px;
+	text-align: center;
+	font-family: Spotify;
+}
+
+.wrapper {
+	display: flex;
+	flex-direction: column;
+}
+
+form {
+	margin-bottom: 20px;
+}
+
+form,
+ul {
+	width: 80%;
+	margin: 20px auto;
+}
+
+input[type="text"] {
+	padding: 10px;
+	width: calc(100% - 22px);
+	margin-bottom: 10px;
+	background-color: #2b2928;
+	border-radius: 30px;
+}
+
+button {
+	display: block;
+	width: 200px;
+	height: 40px;
+	line-height: 40px;
+	font-size: 18px;
+	font-family: sans-serif;
+	text-decoration: none;
+	color: #333;
+	border: 2px solid #333;
+	letter-spacing: 2px;
+	text-align: center;
+	position: relative;
+	transition: all .35s;
+	border-radius: 20px;
+  }
+  
+button span{
+position: relative;
+z-index: 2;
+}
+
+button:after{
+position: absolute;
+content: "";
+top: 0;
+left: 0;
+width: 0;
+height: 100%;
+background: #1DB954;
+transition: all .35s;
+border-radius: 20px;
+}
+
+button:hover{
+color: #ffffff;
+border-radius: 20px;
+}
+
+button:hover:after{
+width: 100%;
+border-radius: 20px;
+}
+
+ul {
+	list-style-type: none;
+	padding: 0;
+}
+
+a {
+	color: red;
+	text-decoration: none;
+	margin-left: 10px;
+}
+
+a:hover {
+	text-decoration: underline;
+}
