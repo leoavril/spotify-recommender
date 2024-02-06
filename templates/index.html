@@ -17,16 +17,14 @@
 					<button type="submit"><span>Predict</span></button>
 				</form>
 
-							</div>
+			</div>
 			<ul>
 				{% for track in tracks %}
 				<li>
 					<iframe style="border-radius:12px" 
 					src="https://open.spotify.com/embed/track/{{ track }}"
-					width="40%"
-					frameBorder="0" allowfullscreen="" 
-					allow="autoplay; clipboard-write; encrypted-media; picture-in-picture" 
-					loading="lazy"></iframe>
+					width="60%" height="200"
+					frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
 				</li>
 				{% endfor %}
 			</ul>
