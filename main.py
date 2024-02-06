@@ -132,7 +132,7 @@ class SpotifyExplorer:
         embed = predictions
         # Get playlist name and tracks
         playlistName = playlist["name"]
-        playlistTracks = [getTrackandArtist(trackURI, self.songs) for trackURI in playlist["tracks"]]
+        playlistTracks = [getTrackandArtist(trackURI, self.songs) for trackURI in playlist["tracks"] if trackURI in self.songs.index]
         predictions = [getTrackandArtist(trackURI, self.songs) for trackURI in predictions]
         
         # Return the prediction
@@ -165,7 +165,7 @@ if __name__ == "__main__":
     # Parse command line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('--parseData')
-    args = parser.parse_args()
+    args = parser.parse_args() 
     if args.parseData:
         numToParse = int(args.parseData)
     else:
@@ -185,7 +185,8 @@ if __name__ == "__main__":
     #spotify_explorer.evalAccuracy(30)
     
     playlist= spotify_explorer.getRandomPlaylist()
+    print(playlist)
 
     # Generate prediction CSV
     embed_link = spotify_explorer.PredictPlaylist(playlist)
-    print(embed_link)
+    
