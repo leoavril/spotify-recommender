@@ -149,7 +149,7 @@ class SpotifyExplorer:
             "embed": embed
         }
 
-    def PredictPlaylist(self, playlist):
+    def predictPlaylist(self, playlist):
         print(f"Generating prediction for given playlist")
         prediction = self.displayPrediction(playlist)
 
@@ -192,4 +192,4 @@ if __name__ == "__main__":
     print(playlist)
 
     # Generate prediction CSV
-    embed_link = spotify_explorer.PredictPlaylist(playlist)
+    embed_link = spotify_explorer.predictPlaylist(playlist)
