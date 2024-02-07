@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, redirect, url_for
+from flask import Flask, request, abort, render_template, redirect, url_for, Response
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 # import the SpotifyExplorer class from your main.py file
@@ -6,6 +6,7 @@ from main import SpotifyExplorer
 import os
 import json
 import pandas as pd
+from util.helpers import parsePlaylistLink
 
 app = Flask(__name__)
 
@@ -23,11 +24,13 @@ sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials(client_id="f2458f8ee1
                                                            client_secret="cd9f1486ebad4d088766160b532d04de"))
 
 
+@app.errorhandler(400)
+def not_playlist_link(e):
+    return render_template('index.html'), 400
+
+
 @app.route('/')
 def index():
-    tracks_embed = request.args.getlist(
-        'tracks_embed')  # Get list from query parameters
-    print(tracks_embed)
     return render_template('index.html', tracks_embed=tracks_embed)
 
 
@@ -37,67 +40,17 @@ def predict():
     global tracks_embed
 
     # Get the playlist_id from the request data
-    playlist_id = request.form.get('playlist')
-
+    playlist_link = request.form.get('playlist')
+    print(playlist_link)
     # Initialize SpotifyExplorer
-    spotify_explorer = SpotifyExplorer(numFiles=0, retrainNNC=True)
+    # spotify_explorer = SpotifyExplorer(numFiles=0, retrainNNC=True)
 
-    # Get playlist details
-    playlist_details = sp.playlist(playlist_id)
-
-    # Get tracks
-    raw_tracks = playlist_details['tracks']['items']
-
-    # Transform the tracks into the desired format
-    tracks = [{
-        'pos': i,
-        'artist_name': track['track']['artists'][0]['name'],
-        'track_uri': track['track']['uri'],
-        'artist_uri': track['track']['artists'][0]['uri'],
-        'track_name': track['track']['name'],
-        'album_uri': track['track']['album']['uri'],
-        'duration_ms': track['track']['duration_ms'],
-        'album_name': track['track']['album']['name']
-    } for i, track in enumerate(raw_tracks)]
-
-    # Create a suitable JSON dictionary
-    playlist = {
-        'info': {
-            'generated_on': '2017-12-04 03:05:11.774401',
-            'slice': f'{pid}-{pid+999}',
-            'version': 'v1'
-        },
-        'playlists': [{
-            'name': playlist_details['name'],
-            'collaborative': playlist_details['collaborative'],
-            'pid': pid,
-            'modified_at': 1468800000,
-            'num_tracks': len(tracks),
-            'num_albums': len(set([track['album_uri'] for track in tracks])),
-            'num_followers': playlist_details['followers']['total'],
-            'tracks': tracks,
-            'num_edits': 2,
-            'duration_ms': sum([track['duration_ms'] for track in tracks]),
-            'num_artists': len(set([track['artist_uri'] for track in tracks]))
-        }]
-    }
-
-    # create pandas Series object
-
-    playlist_series = pd.Series({
-        'name': playlist_details['name'],
-        'collaborative': playlist_details['collaborative'],
-        'pid': pid,
-        'modified_at': 1468800000,
-        'num_tracks': len(tracks),
-        'num_albums': len(set(track['album_uri'] for track in tracks)),
-        'num_followers': playlist_details['followers']['total'],
-        'tracks': [track['track_uri'].split(':')[-1] for track in tracks],
-        'num_edits': 2,
-        'duration_ms': sum(track['duration_ms'] for track in tracks),
-        'num_artists': len(set(track['artist_uri'] for track in tracks)),
-        'description': None  # replace with actual description if available
-    }, name=pid)
+    try:
+        parsedPlaylist = parsePlaylistLink(sp, playlist_link, pid)
+        playlist = parsedPlaylist[0]
+        playlist_series = parsedPlaylist[1]
+    except:
+        abort(400)
 
     # Create the data directory if it doesn't exist
     if not os.path.exists('data'):
@@ -112,8 +65,7 @@ def predict():
 
     # Make a prediction and get the embed links of the suggested tracks
 
-    print(playlist_series)
-    tracks_embed = spotify_explorer.PredictPlaylist(playlist_series)
+    tracks_embed = spotify_explorer.predictPlaylist(playlist_series)
     # Redirect to the index page and pass the embed_link to the template
     return redirect(url_for('index', tracks_embed=tracks_embed))
 
