@@ -21,7 +21,15 @@ from util import vis, dataIn
 from util.helpers import playlistToSparseMatrixEntry, getPlaylistTracks, getTrackandArtist, obscurePlaylist
 
 from azure.identity import DefaultAzureCredential
-from azure.storage.blob import BlobServiceClient
+from azure.storage.blob import BlobServiceClient, ContainerClient
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+client_id = os.getenv('AZURE_CLIENT_ID')
+tenant_id = os.getenv('AZURE_TENANT_ID')
+client_secret = os.getenv('AZURE_CLIENT_SECRET')
 
 class SpotifyExplorer:
 
@@ -42,7 +50,7 @@ class SpotifyExplorer:
     def __init__(self, numFiles, retrainNNC=True):
         # Create a blob service client
         credential = DefaultAzureCredential()
-        self.blob_service_client = BlobServiceClient(account_url="https://mlopsrecommenderstorage.blob.core.windows.net/", credential=credential)
+        self.blob_service_client = BlobServiceClient(account_url="https://mlopsspotifystorage.blob.core.windows.net/", credential=credential)
 
         self.readData(numFiles)
         self.buildClassifiers(retrainNNC)
@@ -98,9 +106,11 @@ class SpotifyExplorer:
                 return int(f)
             
             
+            # Create a container client
+            container_client = self.blob_service_client.get_container_client("data")
 
             # Get a blob client for each file
-            files = [self.blob_service_client.get_blob_client("data", f"data/{f.name}") for f in self.blob_service_client.list_blobs("data")]
+            files = [self.blob_service_client.get_blob_client("data", f"data/{f.name}") for f in container_client.list_blobs("data")]
 
             files.sort(key=sortFile)
 

@@ -7,6 +7,8 @@ import os
 import json
 import pandas as pd
 from util.helpers import parsePlaylistLink
+from azure.identity import DefaultAzureCredential
+from azure.storage.blob import BlobServiceClient
 
 app = Flask(__name__)
 
@@ -52,13 +54,15 @@ def predict():
     except:
         abort(400)
 
-    # Create the data directory if it doesn't exist
-    if not os.path.exists('data'):
-        os.makedirs('data')
 
     # Write the playlist to a new JSON file
-    with open(f'data/mpd.slice.{pid}-{pid+999}.json', 'w') as f:
-        json.dump(playlist, f, indent=4)
+    playlist_json = json.dumps(playlist, indent=4)
+
+    # Create a blob client using the local file name as the name for the blob
+    blob_client = BlobServiceClient(account_url="https://mlopsspotifystorage.blob.core.windows.net/", credential=DefaultAzureCredential()).get_blob_client("data", f'data/mpd.slice.{pid}-{pid+999}.json')
+
+    # Upload the JSON string to Azure Blob Storage
+    blob_client.upload_blob(playlist_json)
 
     # Increment the pid for the next playlist
     pid += 1000

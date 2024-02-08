@@ -3,6 +3,9 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 from scipy.sparse import dok_matrix
+from azure.storage.blob import BlobServiceClient
+from io import BytesIO
+
 
 def parseTrackURI(uri):
     return uri.split(":")[2]
@@ -38,12 +41,13 @@ def processPlaylistForClustering(playlists, tracks):
 
     return playlistSongSparse.tocsr(), IDtoIDX
 
-def createDFs(idx, numFiles, path, files):
+def createDFs(idx, numFiles, blob_service_client):
     """
     Creates playlist and track DataFrames from
     json files
     """
     # Get correct number of files to work with
+    files = [blob_service_client.get_blob_client("data", "data/" + f.name) for f in blob_service_client.list_blobs("data")]
     files = files[idx:idx+numFiles]
 
     tracksSeen = set()
@@ -51,21 +55,23 @@ def createDFs(idx, numFiles, path, files):
     trackLst = []
 
     print("Creating track and playlist DFs")
-    for i, FILE in enumerate(tqdm(files)):
-        # get full path to file
-        name = path + FILE 
-        with open(name) as f:
-            data = json.load(f)
-            playlists = data["playlists"]
+    for i, file in enumerate(tqdm(files)):
 
-            # for each playlist
-            for playlist in playlists:
-                for track in playlist["tracks"]:
-                    if track["track_uri"] not in tracksSeen:
-                        tracksSeen.add(track["track_uri"])
-                        trackLst.append(track)
-                playlist["tracks"] = [parseTrackURI(x["track_uri"]) for x in playlist["tracks"]]
-                playlistsLst.append(playlist)
+        # Download the blob data
+        blob_data = file.download_blob().readall()
+        
+        # Convert the blob data to a string and load it as json
+        data = json.loads(blob_data.decode('utf-8'))
+        playlists = data["playlists"]
+
+        # for each playlist
+        for playlist in playlists:
+            for track in playlist["tracks"]:
+                if track["track_uri"] not in tracksSeen:
+                    tracksSeen.add(track["track_uri"])
+                    trackLst.append(track)
+            playlist["tracks"] = [parseTrackURI(x["track_uri"]) for x in playlist["tracks"]]
+            playlistsLst.append(playlist)
     
     playlistDF = pd.DataFrame(playlistsLst)
 
@@ -82,11 +88,21 @@ def createDFs(idx, numFiles, path, files):
     tracksDF["sparse_id"] = tracksDF.apply(lambda row: IDtoIDXMap[row["tid"]], axis=1)
     tracksDF = tracksDF.set_index("tid")
     
-    # Write DFs to CSVs
+    # Write DFs to blobs
     print(f"Pickling {len(playlistDF)} playlists")
-    playlistDF.to_pickle("lib/playlists.pkl")
+    playlist_pickle = io.BytesIO()
+    playlistDF.to_pickle(playlist_pickle)
+    playlist_pickle.seek(0)
+    blob_service_client.get_blob_client("data", "lib/playlists.pkl").upload_blob(playlist_pickle)
+
     print(f"Pickling {len(tracksDF)} tracks")
-    tracksDF.to_pickle("lib/tracks.pkl")
+    tracks_pickle = io.BytesIO()
+    tracksDF.to_pickle(tracks_pickle)
+    tracks_pickle.seek(0)
+    blob_service_client.get_blob_client("data", "lib/tracks.pkl").upload_blob(tracks_pickle)
+
     print(f"Pickling clustered playlist")
-    pickle.dump(playlistClusteredDF, open(f"lib/playlistSparse.pkl", "wb"))
-    
+    playlist_clustered_pickle = io.BytesIO()
+    pickle.dump(playlistClusteredDF, playlist_clustered_pickle)
+    playlist_clustered_pickle.seek(0)
+    blob_service_client.get_blob_client("data", "lib/playlistSparse.pkl").upload_blob(playlist_clustered_pickle)
