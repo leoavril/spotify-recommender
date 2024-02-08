@@ -1,6 +1,7 @@
 import json
 import argparse
 import os
+from io import BytesIO
 import random
 
 import pprint as pp
@@ -19,8 +20,12 @@ from models.BaseClassifier import BaseClassifier
 from util import vis, dataIn
 from util.helpers import playlistToSparseMatrixEntry, getPlaylistTracks, getTrackandArtist, obscurePlaylist
 
+from azure.identity import DefaultAzureCredential
+from azure.storage.blob import BlobServiceClient
 
 class SpotifyExplorer:
+
+
     """
     Args:
         numFiles (int): CLI variable that determines how many MPD files to read
@@ -35,8 +40,13 @@ class SpotifyExplorer:
     """
 
     def __init__(self, numFiles, retrainNNC=True):
+        # Create a blob service client
+        credential = DefaultAzureCredential()
+        self.blob_service_client = BlobServiceClient(account_url="https://mlopsrecommenderstorage.blob.core.windows.net/", credential=credential)
+
         self.readData(numFiles)
         self.buildClassifiers(retrainNNC)
+
 
     def buildClassifiers(self, retrainNNC):
         """
@@ -86,21 +96,34 @@ class SpotifyExplorer:
             def sortFile(f):
                 f = f.split('.')[2].split('-')[0]
                 return int(f)
-            files = os.listdir(r"E:\Documents\EFREI\M2\spotify\data\\")
+            
+            
+
+            # Get a blob client for each file
+            files = [self.blob_service_client.get_blob_client("data", f"data/{f.name}") for f in self.blob_service_client.list_blobs("data")]
+
             files.sort(key=sortFile)
 
             dataIn.createDFs(idx=0,
                              numFiles=numFilesToProcess,
-                             path=r"E:\Documents\EFREI\M2\spotify\data\\",
-                             files=files)
+                             blob_service_client=self.blob_service_client)
 
         # Read data
         print("Reading data")
-        self.playlists = pd.read_pickle("lib/playlists.pkl")
-        self.songs = pd.read_pickle("lib/tracks.pkl")
-        self.playlistSparse = pd.read_pickle("lib/playlistSparse.pkl")
+
+        # Get the blob client for the pickled dataframe and read it directly
+        playlist_blob = self.blob_service_client.get_blob_client("data", "lib/playlists.pkl").download_blob().readall()
+        self.playlists = pd.read_pickle(BytesIO(playlist_blob))
+
+        songs_blob = self.blob_service_client.get_blob_client("data", "lib/tracks.pkl").download_blob().readall()
+        self.songs = pd.read_pickle(BytesIO(songs_blob))
+
+        playlistSparse_blob = self.blob_service_client.get_blob_client("data", "lib/playlistSparse.pkl").download_blob().readall()
+        self.playlistSparse = pd.read_pickle(BytesIO(playlistSparse_blob))
+
         print(f"Working with {len(self.playlists)} playlists " +
               f"and {len(self.songs)} songs")
+
 
     def getRandomPlaylist(self):
         return self.playlists.iloc[random.randint(0, len(self.playlists) - 1)]
@@ -158,11 +181,20 @@ class SpotifyExplorer:
 
         df = pd.DataFrame([prediction])
 
-        # Check if the file exists
-        if os.path.isfile('predictionData.csv'):
-            df.to_csv("predictionData.csv", mode='a', header=False, index=True)
-        else:
-            df.to_csv("predictionData.csv", index=True)
+        # Create a blob client for the CSV file
+        blob_client = self.blob_service_client.get_blob_client("data", "predictions/predictionData.csv")
+
+
+        # Check if the blob exists
+        if blob_client.exists():
+            # Append the data to the existing CSV file
+            blob_data = blob_client.download_blob().readall()
+            existing_df = pd.read_csv(BytesIO(blob_data))
+            df = pd.concat([existing_df, df])
+
+        # Convert the dataframe to CSV and upload it to Azure Blob Storage
+        csv_data = df.to_csv(index=True)
+        blob_client.upload_blob(csv_data, overwrite=True)
 
         # Return the prediction dictionary
         return embed_link
@@ -189,7 +221,6 @@ if __name__ == "__main__":
     # spotify_explorer.evalAccuracy(30)
 
     playlist = spotify_explorer.getRandomPlaylist()
-    print(playlist)
 
     # Generate prediction CSV
     embed_link = spotify_explorer.predictPlaylist(playlist)
