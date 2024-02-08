@@ -11,9 +11,13 @@ class TestAppE2E(unittest.TestCase):
     def setUp(self):
         # Launch your flask app first
 
-        chrome_options = Options()
-        chrome_options.binary_location = 'C:\\Users\\Léo\\Documents\\EFREI\\M2\\S9\\ML In Prod\\testinglab\\chrome-win64'
-        self.driver = webdriver.Chrome()
+        chrome_options = webdriver.ChromeOptions()
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--window-size=1920,1080')
+        chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--disable-gpu')
+        chrome_options.binary_location = "/usr/local/bin/chromedriver"
+        self.driver = webdriver.Chrome(options=chrome_options)
         self.driver.get('http://localhost:5000')
 
     def test_add_and_delete_item(self):
