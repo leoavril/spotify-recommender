@@ -1,0 +1,28 @@
+name : Retrain the model
+
+on : 
+  schedule : 
+    -  cron :  '0 0 * * 1'  # Every Monday at 00:00
+
+jobs :
+  retrain :
+    runs-on :  ubuntu-latest
+    steps :
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.10.5
+
+      -  name :  Install Dependencies
+         run :  |
+           python -m pip install --upgrade pip
+           pip install -r requirements.txt
+
+      -  name :  Retrain Model
+         run :  |
+           python main.py parseData=101 retrain=True
+
+    
