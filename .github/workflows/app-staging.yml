@@ -25,13 +25,17 @@ jobs:
 
       - name: Run Unit Tests
         run: |
-          python test-app.py
+          python test/test-app.py
 
-      - name: Run Intgration Tests
+      - name: Run Integration Tests
+        run: |
+          python test/test-integration-app.py
+
+      - name: Run End To End Test
         run: |
           python app.py &
           APP_PID=$!
-          python test-endtoend-app.py
+          python test/test-endtoend-app.py
           kill $APP_PID
 
   push_to_main:
