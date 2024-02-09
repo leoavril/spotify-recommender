@@ -3,8 +3,8 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 from scipy.sparse import dok_matrix
-from azure.storage.blob import BlobServiceClient
-from io import BytesIO
+from azure.storage.blob import BlobServiceClient, BlobPrefix
+import io
 
 
 def parseTrackURI(uri):
@@ -30,6 +30,10 @@ def processPlaylistForClustering(playlists, tracks):
     for i in tqdm(range(len(playlistIDs))):
         # Get playlist and track ids from DF
         playlistID = playlistIDs[i]
+    
+        if playlistID not in playlists.index:
+            continue
+
         trackID = playlists.loc[playlistID]["tracks"]
         playlistIDX = playlistID
         
@@ -41,13 +45,28 @@ def processPlaylistForClustering(playlists, tracks):
 
     return playlistSongSparse.tocsr(), IDtoIDX
 
+def list_blobs_hierarchical(container_client, prefix="data/"):
+        files = []
+        for blob in container_client.walk_blobs(name_starts_with=prefix, delimiter='/'):
+            if isinstance(blob, BlobPrefix):
+                files.extend(list_blobs_hierarchical(container_client, prefix=blob.name))
+            else:
+                files.append(blob)
+        return files
+
 def createDFs(idx, numFiles, blob_service_client):
     """
     Creates playlist and track DataFrames from
     json files
     """
+
+    # Get a container client for the 'data' container
+    container_client = blob_service_client.get_container_client("data")
+
+
     # Get correct number of files to work with
-    files = [blob_service_client.get_blob_client("data", "data/" + f.name) for f in blob_service_client.list_blobs("data")]
+    blobs = list_blobs_hierarchical(container_client)
+    files = [blob_service_client.get_blob_client("data", blob.name) for blob in blobs]
     files = files[idx:idx+numFiles]
 
     tracksSeen = set()
@@ -93,16 +112,16 @@ def createDFs(idx, numFiles, blob_service_client):
     playlist_pickle = io.BytesIO()
     playlistDF.to_pickle(playlist_pickle)
     playlist_pickle.seek(0)
-    blob_service_client.get_blob_client("data", "lib/playlists.pkl").upload_blob(playlist_pickle)
+    blob_service_client.get_blob_client("data", "lib/playlists.pkl").upload_blob(playlist_pickle, overwrite=True)
 
     print(f"Pickling {len(tracksDF)} tracks")
     tracks_pickle = io.BytesIO()
     tracksDF.to_pickle(tracks_pickle)
     tracks_pickle.seek(0)
-    blob_service_client.get_blob_client("data", "lib/tracks.pkl").upload_blob(tracks_pickle)
+    blob_service_client.get_blob_client("data", "lib/tracks.pkl").upload_blob(tracks_pickle, overwrite=True)
 
     print(f"Pickling clustered playlist")
     playlist_clustered_pickle = io.BytesIO()
     pickle.dump(playlistClusteredDF, playlist_clustered_pickle)
     playlist_clustered_pickle.seek(0)
-    blob_service_client.get_blob_client("data", "lib/playlistSparse.pkl").upload_blob(playlist_clustered_pickle)
+    blob_service_client.get_blob_client("data", "lib/playlistSparse.pkl").upload_blob(playlist_clustered_pickle, overwrite=True)

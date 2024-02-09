@@ -21,7 +21,7 @@ from util import vis, dataIn
 from util.helpers import playlistToSparseMatrixEntry, getPlaylistTracks, getTrackandArtist, obscurePlaylist
 
 from azure.identity import DefaultAzureCredential
-from azure.storage.blob import BlobServiceClient, ContainerClient
+from azure.storage.blob import BlobServiceClient, ContainerClient, BlobPrefix
 
 from dotenv import load_dotenv
 
@@ -49,8 +49,8 @@ class SpotifyExplorer:
 
     def __init__(self, numFiles, retrainNNC=True):
         # Create a blob service client
-        credential = DefaultAzureCredential()
-        self.blob_service_client = BlobServiceClient(account_url="https://mlopsspotifystorage.blob.core.windows.net/", credential=credential)
+        connection_string = os.getenv('AZURE_STORAGE_CONNECTION_STRING')
+        self.blob_service_client = BlobServiceClient.from_connection_string(connection_string)
 
         self.readData(numFiles)
         self.buildClassifiers(retrainNNC)
@@ -93,6 +93,17 @@ class SpotifyExplorer:
         elif classifier == "Base":
             self.classifier = self.baseClassifier
 
+
+
+    def list_blobs_hierarchical(self,container_client, prefix="data/"):
+        files = []
+        for blob in container_client.walk_blobs(name_starts_with=prefix, delimiter='/'):
+            if isinstance(blob, BlobPrefix):
+                files.extend(self.list_blobs_hierarchical(container_client, prefix=blob.name))
+            else:
+                files.append(blob)
+        return files
+
     def readData(self, numFilesToProcess):
 
         # Read song and playlist data
@@ -102,15 +113,21 @@ class SpotifyExplorer:
         if numFilesToProcess > 0:
             # extract number from file
             def sortFile(f):
-                f = f.split('.')[2].split('-')[0]
-                return int(f)
+                # Get the blob name
+                blob_name = f.blob_name
+
+                # Split the blob name
+                blob_name = blob_name.split('.')[2].split('-')[0]
+                print("the blob name is", blob_name)
+                return int(blob_name)
             
             
             # Create a container client
             container_client = self.blob_service_client.get_container_client("data")
 
             # Get a blob client for each file
-            files = [self.blob_service_client.get_blob_client("data", f"data/{f.name}") for f in container_client.list_blobs("data")]
+            blobs = self.list_blobs_hierarchical(container_client)
+            files = [self.blob_service_client.get_blob_client("data",blob.name) for blob in blobs]
 
             files.sort(key=sortFile)
 
@@ -188,7 +205,7 @@ class SpotifyExplorer:
 
         embed_link = prediction['embed']
         prediction.pop('embed', None)
-
+        print(embed_link)
         df = pd.DataFrame([prediction])
 
         # Create a blob client for the CSV file

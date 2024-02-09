@@ -11,7 +11,8 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 import heapq
 from util.helpers import playlistToSparseMatrixEntry, getPlaylistTracks
-
+from azure.identity import DefaultAzureCredential
+from azure.storage.blob import BlobServiceClient
 
 class NNeighClassifier():
     def __init__(self, playlists, sparsePlaylists, songs, reTrain=False, name="NNClassifier.pkl"):
@@ -20,20 +21,23 @@ class NNeighClassifier():
         self.playlistData = sparsePlaylists
         self.playlists = playlists
         self.songs = songs
+        self.credential = DefaultAzureCredential()
+        self.blob_service_client = BlobServiceClient(account_url="https://mlopspotifystorage.blob.core.windows.net/", credential=self.credential)
         self.initModel(reTrain)
 
     def initModel(self, reTrain):
         """
         """
-        libContents = os.listdir("lib")
-        if self.pathName not in libContents or reTrain:
+        blob_client = self.blob_service_client.get_blob_client("data", f"lib/{self.pathName}")
+       
+        if not blob_client.exists() or reTrain:
             self.model = NearestNeighbors(
                 n_neighbors=60,
                 metric="cosine")
             self.trainModel(self.playlistData)
         else:
-            with (open(f"lib/{self.pathName}", "rb")) as f:
-                self.model = pickle.load(f)
+            blob_data = blob_client.download_blob().readall()
+            self.model = pickle.loads(blob_data)
 
     def trainModel(self, data):
         """
@@ -82,5 +86,6 @@ class NNeighClassifier():
     def saveModel(self):
         """
         """
-        with (open(f"lib/{self.pathName}", "wb") as file):
-            pickle.dump(self.model, file)
+        blob_client = self.blob_service_client.get_blob_client("data", f"lib/{self.pathName}")
+        model_data = pickle.dumps(self.model)
+        blob_client.upload_blob(model_data, overwrite=True)
