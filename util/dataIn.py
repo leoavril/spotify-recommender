@@ -121,6 +121,7 @@ def createDFs(idx, numFiles, blob_service_client):
     blob_service_client.get_blob_client("data", "lib/tracks.pkl").upload_blob(tracks_pickle, overwrite=True)
 
     print(f"Pickling clustered playlist")
+
     playlist_clustered_pickle = io.BytesIO()
     pickle.dump(playlistClusteredDF, playlist_clustered_pickle)
     playlist_clustered_pickle.seek(0)

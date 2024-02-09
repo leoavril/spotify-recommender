@@ -17,57 +17,33 @@ import io
 
 
 class NNeighClassifier():
-    def __init__(self, playlists, sparsePlaylists, songs, reTrain=False, name="NNClassifier.pkl"):
+    def __init__(self, playlists, sparsePlaylists, songs, reTrain=False, name="NNClassifier.pkl", blob_service_client=None):
         self.pathName = name
         self.name = "NNC"
         self.playlistData = sparsePlaylists
         self.playlists = playlists
         self.songs = songs
         self.credential = DefaultAzureCredential()
-        self.blob_service_client = BlobServiceClient(account_url="https://mlopspotifystorage.blob.core.windows.net/", credential=self.credential)
+        self.blob_service_client = blob_service_client
         self.initModel(reTrain)
-
-    """
-    def list_blobs_hierarchical(self,container_client, prefix="lib/"):
-        files = []
-        print("baise la bien ta mere")
-        for blob in container_client.walk_blobs(name_starts_with=prefix, delimiter='/'):
-            print("baise la bien ta mere")
-            if isinstance(blob, BlobPrefix):
-                files.extend(self.list_blobs_hierarchical(container_client, prefix=blob.name))
-            else:
-                files.append(blob)
-        return files
     
-    def model_exists(self):
-        container_name = "lib"
-        model_name = "NNClassifier.pkl"
-
-         # Get a container client for the 'lib' container
-        container_client = self.blob_service_client.get_container_client(container_name)
-        
-        blob_list =  self.list_blobs_hierarchical(container_client)
-        for blob in blob_list:
-            print(blob.name)
-            if blob.name == model_name:
-                return True
-
-        return False
-    """
         
     def initModel(self, reTrain):
         """
         """
         blob_client = self.blob_service_client.get_blob_client("data", f"lib/{self.pathName}")
         
-        exists = False
+        exists = blob_client.exists()
         print(exists)
+        print(reTrain)
         if not exists or reTrain:
+            print("Creating new model")
             self.model = NearestNeighbors(
                 n_neighbors=60,
                 metric="cosine")
             self.trainModel(self.playlistData)
         else:
+            print("Downloading model from blob storage")
             blob_data = blob_client.download_blob().readall()
             self.model = pickle.loads(blob_data)
         
@@ -77,9 +53,8 @@ class NNeighClassifier():
         """
         print(f"Training Nearest Neighbors classifier")
         self.model.fit(data)
-        print(f"Training Nearest Neighbors classifier")
         self.saveModel()
-        print(f"Training Nearest Neighbors classifier")
+        
 
     def getNeighbors(self, X, k):
         """
@@ -120,14 +95,13 @@ class NNeighClassifier():
 
     def saveModel(self):
         """
-        """
-        print("^^")
-        blob_client = self.blob_service_client.get_blob_client("data", f"lib/{self.pathName}")
-        print("^^")
-        buffer = io.BytesIO()
-        pickle.dump(self.model, buffer)
-        print("^^")
-        buffer.seek(0)
-        print("^^")
-        blob_client.upload_blob(buffer, overwrite=True)
-        print("^^")
+        """        
+        print("pickle the model")
+
+        model_pickle = io.BytesIO()
+        pickle.dump(self.model, model_pickle)
+        model_pickle.seek(0)
+        print("uploading model to blob storage")
+        self.blob_service_client.get_container_client(container = "data").upload_blob(name = "lib/NNClassifier.pkl", data = model_pickle, overwrite=True)
+        print("model pickled")
+        

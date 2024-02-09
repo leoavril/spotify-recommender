@@ -47,7 +47,7 @@ class SpotifyExplorer:
         playlistSparse (scipy.CSR matrix) playlists formatted for predictions
     """
 
-    def __init__(self, numFiles, retrainNNC=True):
+    def __init__(self, numFiles, retrainNNC=False):
         # Create a blob service client
         connection_string = os.getenv('AZURE_STORAGE_CONNECTION_STRING')
         self.blob_service_client = BlobServiceClient.from_connection_string(connection_string)
@@ -72,7 +72,9 @@ class SpotifyExplorer:
             sparsePlaylists=self.playlistSparse,
             songs=self.songs,
             playlists=self.playlists,
-            reTrain=shouldRetrain)
+            reTrain=shouldRetrain,
+            blob_service_client=self.blob_service_client
+            )
 
         return self.NNC
 
@@ -119,7 +121,6 @@ class SpotifyExplorer:
 
                 # Split the blob name
                 blob_name = blob_name.split('.')[2].split('-')[0]
-                print("the blob name is", blob_name)
                 return int(blob_name)
             
             
@@ -148,7 +149,6 @@ class SpotifyExplorer:
 
         playlistSparse_blob = self.blob_service_client.get_blob_client("data", "lib/playlistSparse.pkl").download_blob().readall()
         self.playlistSparse = pd.read_pickle(BytesIO(playlistSparse_blob))
-        print(self.playlistSparse.shape)
         print(f"Working with {len(self.playlists)} playlists " +
               f"and {len(self.songs)} songs")
 
@@ -203,11 +203,11 @@ class SpotifyExplorer:
     def predictPlaylist(self, playlist):
         print(f"Generating prediction for given playlist")
         prediction = self.displayPrediction(playlist)
-        print("je suis la fdp")
+        
         embed_link = prediction['embed']
-        print("je suis la fdp")
+        
         prediction.pop('embed', None)
-        print("je suis la fdp")
+        
         df = pd.DataFrame([prediction])
 
         # Create a blob client for the CSV file
@@ -222,7 +222,7 @@ class SpotifyExplorer:
             df = pd.concat([existing_df, df])
 
         # Convert the dataframe to CSV and upload it to Azure Blob Storage
-        csv_data = df.to_csv(index=True)
+        csv_data = df.to_csv(index=False)
         blob_client.upload_blob(csv_data, overwrite=True)
 
         # Return the prediction dictionary
@@ -230,6 +230,9 @@ class SpotifyExplorer:
 
 
 if __name__ == "__main__":
+
+    
+
     # Parse command line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('--parseData')
@@ -244,7 +247,7 @@ if __name__ == "__main__":
     # parse:    Boolean to load in data
 
     # Init class
-    spotify_explorer = SpotifyExplorer(numToParse, retrainNNC=True)
+    spotify_explorer = SpotifyExplorer(numToParse, retrainNNC=False)
 
     # Run tests on NNC
     # spotify_explorer.evalAccuracy(30)
