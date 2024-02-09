@@ -4,16 +4,19 @@ from spotipy.oauth2 import SpotifyClientCredentials
 # import the SpotifyExplorer class from your main.py file
 from main import SpotifyExplorer
 import os
+from dotenv import load_dotenv
 import json
 import pandas as pd
 from util.helpers import parsePlaylistLink
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobServiceClient
 
+load_dotenv()
+
 app = Flask(__name__)
 
 # Initialize the pid
-pid = 1000000
+pid = 100000
 
 # Print all the tracks that have been sugested
 tracks_embed = []
@@ -24,6 +27,10 @@ spotify_explorer = SpotifyExplorer(numFiles=0, retrainNNC=False)
 # Set up Spotipy
 sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials(client_id="f2458f8ee1304f43acbb7f6037de86c8",
                                                            client_secret="cd9f1486ebad4d088766160b532d04de"))
+
+connection_string = os.getenv('AZURE_STORAGE_CONNECTION_STRING')
+blob_service_client = BlobServiceClient.from_connection_string(
+    connection_string)
 
 
 @app.errorhandler(400)
@@ -54,18 +61,17 @@ def predict():
     except:
         abort(400)
 
-
     # Write the playlist to a new JSON file
     playlist_json = json.dumps(playlist, indent=4)
 
     # Create a blob client using the local file name as the name for the blob
-    blob_client = BlobServiceClient(account_url="https://mlopsspotifystorage.blob.core.windows.net/", credential=DefaultAzureCredential()).get_blob_client("data", f'data/mpd.slice.{pid}-{pid+999}.json')
+    blob_service_client.get_blob_client(
+        "data", f'data/mpd.slice.{pid}-{pid+999}.json').upload_blob(playlist_json, overwrite=True)
 
     # Upload the JSON string to Azure Blob Storage
-    blob_client.upload_blob(playlist_json)
 
     # Increment the pid for the next playlist
-    pid += 1000
+    pid += 1
 
     # Make a prediction and get the embed links of the suggested tracks
 
