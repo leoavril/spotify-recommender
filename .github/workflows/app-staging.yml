@@ -1,0 +1,85 @@
+name: Docker CI/CD
+
+on:
+  push:
+    branches:
+      - staging
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.10.5
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Unit Tests
+        run: |
+          python test-app.py
+
+      - name: Run Intgration Tests
+        run: |
+          python app.py &
+          APP_PID=$!
+          python test-endtoend-app.py
+          kill $APP_PID
+
+  push_to_main:
+    name: Push Staging Branch
+    needs: build_and_test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Configure Git User
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+
+      - name: Merge into main
+        run: |
+          git fetch origin 
+          git checkout staging
+          git push -f origin staging:main
+        env:
+          GIT_AUTH_TOKEN: ${{ secrets.GIT_TOKEN }}
+
+  push_to_registry:
+    name: Push Docker image to Docker Hub
+    needs: build_and_test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
+        with:
+          images: leohnar/flaskapp
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@3b5e8027fcad23fda98b2e3ac259d8d67585f671
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
