@@ -21,7 +21,7 @@ class IntegrationTestFlaskApp(unittest.TestCase):
 
     def test_predict_playlist_link(self):
         # Test predicting correct play link
-        playlist_link = r"https://open.spotify.com/playlist/37i9dQZF1DWXdiK4WAVRUW"
+        playlist_link = r"https://open.spotify.com/playlist/37i9dQZF1DZ06evO03DwPK?si=a5cdfcac94354a3c"
         response = self.app.post(
             '/predict', data=dict(playlist=playlist_link), follow_redirects=True)
 
@@ -35,7 +35,7 @@ class IntegrationTestFlaskApp(unittest.TestCase):
         self.assertIsNotNone(tracks_embed)
 
     def test_html_contains_songs(self):
-        playlist_link = r"https://open.spotify.com/playlist/37i9dQZF1DWXdiK4WAVRUW"
+        playlist_link = r"https://open.spotify.com/playlist/37i9dQZF1DZ06evO03DwPK?si=a5cdfcac94354a3c"
         response = self.app.post(
             '/predict', data=dict(playlist=playlist_link), follow_redirects=True)
         split_code = response.data.split(b"<li>")

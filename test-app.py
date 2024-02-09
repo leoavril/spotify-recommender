@@ -20,7 +20,7 @@ class TestFlaskApp(unittest.TestCase):
 
     def test_predict_correct_playlist_link(self):
         # Test predicting correct play link
-        playlist_link = r"https://open.spotify.com/playlist/37i9dQZF1DWXdiK4WAVRUW"
+        playlist_link = r"https://open.spotify.com/playlist/37i9dQZF1DZ06evO03DwPK?si=a5cdfcac94354a3c"
         response = self.app.post(
             '/predict', data=dict(playlist=playlist_link), follow_redirects=True)
         self.assertEqual(response.status_code, 200,
@@ -35,7 +35,7 @@ class TestFlaskApp(unittest.TestCase):
                          "Response should be 400")
 
     def test_function_returns_list_of_dict(self):
-        playlist_link = r"https://open.spotify.com/playlist/37i9dQZF1DWXdiK4WAVRUW"
+        playlist_link = r"https://open.spotify.com/playlist/37i9dQZF1DZ06evO03DwPK?si=a5cdfcac94354a3c"
         parsedPlaylist = parsePlaylistLink(self.sp, playlist_link)
         self.assertEqual(type(parsedPlaylist), list)
         self.assertEqual(type(parsedPlaylist[0]), dict)

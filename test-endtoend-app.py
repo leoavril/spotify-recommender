@@ -23,7 +23,7 @@ class TestAppE2E(unittest.TestCase):
     def test_add_and_delete_item(self):
         # you can use the driver to find elements in the page
         # example:
-        playlist_link = r"https://open.spotify.com/playlist/37i9dQZF1DWXdiK4WAVRUW"
+        playlist_link = r"https://open.spotify.com/playlist/37i9dQZF1DZ06evO03DwPK?si=a5cdfcac94354a3c"
         input_field = self.driver.find_element(
             By.XPATH, "//input[@name='playlist']")
         # this refers to the input with 'name="playlist"' attribute
