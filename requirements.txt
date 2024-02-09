@@ -1,12 +1,13 @@
+azure_storage==0.37.0
 Flask==2.1.2
 matplotlib==3.5.2
 numpy==1.22.4
 pandas==1.4.2
+python-dotenv==1.0.1
 scikit_learn==1.1.1
 scipy==1.8.1
 selenium==4.17.2
 spotipy==2.23.0
 tqdm==4.64.0
-werkzeug==2.1.2
 azure-identity==1.15.0
 azure-storage-blob==12.19.0
