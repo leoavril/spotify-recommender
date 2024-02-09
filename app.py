@@ -15,9 +15,6 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# Initialize the pid
-pid = 100000
-
 # Print all the tracks that have been sugested
 tracks_embed = []
 
@@ -31,6 +28,14 @@ sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials(client_id="f2458f8ee1
 connection_string = os.getenv('AZURE_STORAGE_CONNECTION_STRING')
 blob_service_client = BlobServiceClient.from_connection_string(
     connection_string)
+
+
+pid_bytes = blob_service_client.get_blob_client(
+    "data", "lib/pid.json").download_blob().readall()
+
+
+pid_dict = json.loads(pid_bytes)
+pid = pid_dict['pid']
 
 
 @app.errorhandler(400)
@@ -72,6 +77,10 @@ def predict():
 
     # Increment the pid for the next playlist
     pid += 1
+
+    pid_json = json.dumps({'pid': pid})
+    blob_service_client.get_blob_client(
+        "data", 'lib/pid.json').upload_blob(pid_json, overwrite=True)
 
     # Make a prediction and get the embed links of the suggested tracks
 
