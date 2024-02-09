@@ -69,9 +69,18 @@ def predict():
     # Write the playlist to a new JSON file
     playlist_json = json.dumps(playlist, indent=4)
 
-    # Create a blob client using the local file name as the name for the blob
-    blob_service_client.get_blob_client(
-        "data", f'data/mpd.slice.{pid}-{pid+999}.json').upload_blob(playlist_json, overwrite=True)
+    # Create a blob client using the local file name as the name for the blob if the pid ends in 999, if not read the file with the current pid and append the new playlist to it
+    if pid % 1000 == 0:
+        blob_service_client.get_blob_client(
+            "data", f'data/mpd.slice.{pid}-{pid+999}.json').upload_blob(playlist_json, overwrite=True)
+    else:
+        blob_client = blob_service_client.get_blob_client(
+            "data", f'data/mpd.slice.{pid-(pid % 1000)}-{pid-(pid % 1000)+999}.json')
+        blob_data = blob_client.download_blob().readall()
+        existing_json = json.loads(blob_data)
+        existing_json['playlists'].append(playlist)
+        playlist_json = json.dumps(existing_json, indent=4)
+        blob_client.upload_blob(playlist_json, overwrite=True)
 
     # Upload the JSON string to Azure Blob Storage
 
