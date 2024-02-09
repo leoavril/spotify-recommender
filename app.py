@@ -4,14 +4,12 @@ from spotipy.oauth2 import SpotifyClientCredentials
 # import the SpotifyExplorer class from your main.py file
 from main import SpotifyExplorer
 import os
-from dotenv import load_dotenv
 import json
 import pandas as pd
 from util.helpers import parsePlaylistLink
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobServiceClient
 
-load_dotenv()
 
 app = Flask(__name__)
 
@@ -25,9 +23,10 @@ spotify_explorer = SpotifyExplorer(numFiles=0, retrainNNC=False)
 sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials(client_id="f2458f8ee1304f43acbb7f6037de86c8",
                                                            client_secret="cd9f1486ebad4d088766160b532d04de"))
 
-connection_string = os.getenv('AZURE_STORAGE_CONNECTION_STRING')
+CONNECTION_STRING = os.environ['AZURE_STORAGE_CONNECTION_STRING']
+
 blob_service_client = BlobServiceClient.from_connection_string(
-    connection_string)
+    CONNECTION_STRING)
 
 
 pid_bytes = blob_service_client.get_blob_client(

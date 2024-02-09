@@ -4,14 +4,15 @@ import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 from util.helpers import parsePlaylistLink
 import pandas
+import os
 
 
 class TestFlaskApp(unittest.TestCase):
     def setUp(self):
         self.app = app.test_client()
         self.app.testing = True
-        self.sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials(client_id="f2458f8ee1304f43acbb7f6037de86c8",
-                                                                        client_secret="cd9f1486ebad4d088766160b532d04de"))
+        self.sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials(client_id=os.environ['SPOTIFY_CLIENT_ID'],
+                                                                        client_secret=os.environ['SPOTIFY_CLIENT_SECRET']))
 
     def test_read_page(self):
         # check if the page is loaded
