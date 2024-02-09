@@ -40,7 +40,7 @@ jobs:
       - name: Run End To End Test
         run: |
           python app.py &
-          sleep 30
+          sleep 60
           APP_PID=$!
           python test-endtoend-app.py
           kill $APP_PID
