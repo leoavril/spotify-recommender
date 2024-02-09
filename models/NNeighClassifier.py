@@ -26,16 +26,14 @@ class NNeighClassifier():
         self.credential = DefaultAzureCredential()
         self.blob_service_client = blob_service_client
         self.initModel(reTrain)
-    
-        
+
     def initModel(self, reTrain):
         """
         """
-        blob_client = self.blob_service_client.get_blob_client("data", f"lib/{self.pathName}")
-        
+        blob_client = self.blob_service_client.get_blob_client(
+            "data", f"lib/{self.pathName}")
         exists = blob_client.exists()
-        print(exists)
-        print(reTrain)
+
         if not exists or reTrain:
             print("Creating new model")
             self.model = NearestNeighbors(
@@ -46,7 +44,6 @@ class NNeighClassifier():
             print("Downloading model from blob storage")
             blob_data = blob_client.download_blob().readall()
             self.model = pickle.loads(blob_data)
-        
 
     def trainModel(self, data):
         """
@@ -54,7 +51,6 @@ class NNeighClassifier():
         print(f"Training Nearest Neighbors classifier")
         self.model.fit(data)
         self.saveModel()
-        
 
     def getNeighbors(self, X, k):
         """
@@ -95,13 +91,13 @@ class NNeighClassifier():
 
     def saveModel(self):
         """
-        """        
+        """
         print("pickle the model")
 
         model_pickle = io.BytesIO()
         pickle.dump(self.model, model_pickle)
         model_pickle.seek(0)
         print("uploading model to blob storage")
-        self.blob_service_client.get_container_client(container = "data").upload_blob(name = "lib/NNClassifier.pkl", data = model_pickle, overwrite=True)
+        self.blob_service_client.get_container_client(container="data").upload_blob(
+            name="lib/NNClassifier.pkl", data=model_pickle, overwrite=True)
         print("model pickled")
-        

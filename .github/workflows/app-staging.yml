@@ -24,10 +24,16 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run Unit Tests
+        env:
+          SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID}}
+          SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET}}
         run: |
           python test-app.py
 
       - name: Run Integration Tests
+        env:
+          SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID}}
+          SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET}}
         run: |
           python test-integration-app.py
 
