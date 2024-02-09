@@ -73,6 +73,7 @@ class SpotifyExplorer:
             songs=self.songs,
             playlists=self.playlists,
             reTrain=shouldRetrain)
+
         return self.NNC
 
     def buildBaseClassifier(self):
@@ -147,7 +148,7 @@ class SpotifyExplorer:
 
         playlistSparse_blob = self.blob_service_client.get_blob_client("data", "lib/playlistSparse.pkl").download_blob().readall()
         self.playlistSparse = pd.read_pickle(BytesIO(playlistSparse_blob))
-
+        print(self.playlistSparse.shape)
         print(f"Working with {len(self.playlists)} playlists " +
               f"and {len(self.songs)} songs")
 
@@ -202,10 +203,11 @@ class SpotifyExplorer:
     def predictPlaylist(self, playlist):
         print(f"Generating prediction for given playlist")
         prediction = self.displayPrediction(playlist)
-
+        print("je suis la fdp")
         embed_link = prediction['embed']
+        print("je suis la fdp")
         prediction.pop('embed', None)
-        print(embed_link)
+        print("je suis la fdp")
         df = pd.DataFrame([prediction])
 
         # Create a blob client for the CSV file
